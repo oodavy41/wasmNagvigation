@@ -24,3 +24,6 @@ yarn-error.log*
 
 
 /static/recast
+/dist
+/docs/recast
+package-lock.json

@@ -1,11 +1,15 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-
 import * as THREE from "three";
+import pako from "pako";
+import axios from "axios";
+
 import RecastJS from "Recast";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { OBJLoader as Loader } from "three/examples/jsm/loaders/OBJLoader";
 
 import "./App.css";
 
+//import terrain from "./vec.json"
+const worldOBJPath = "./worldNEW.obj.gz";
 const cameraDistance = 120;
 const viewSize = [1280, 720];
 const toNavCoords = (vec) => {
@@ -30,16 +34,27 @@ function App() {
 
   useEffect(() => {
     new Promise((res) => {
-      const loader = new GLTFLoader();
-      loader.load("./countries.glb", (data) => {
-        res(data);
-      });
+      axios
+        .get(worldOBJPath, { responseType: "arraybuffer" })
+        .then((response) => {
+          let gz = new Uint8Array(response.data);
+          let objstr = pako.inflate(gz);
+          let blob = new Blob([objstr], { type: "text/plain" });
+          const loader = new Loader();
+          loader.load(URL.createObjectURL(blob), (data) => {
+            res(data);
+          });
+        });
     }).then((model) => {
       setLoading(1);
-      const mapObject = model.scene.children[0];
+
+      const mapObject = model.children[0];
       const geo = mapObject.geometry;
-      const geoIndeces = geo.index.array;
       const geoPoses = geo.attributes.position.array;
+      const geoIndeces = [];
+      for (let i = 0; i < geoPoses.length / 3; i++) {
+        geoIndeces.push(i);
+      }
 
       const camera = new THREE.PerspectiveCamera(
         45,
@@ -171,16 +186,17 @@ function App() {
         const config = {
           cs: 0.2,
           ch: 0.2,
-          walkableSlopeAngle: 60,
-          walkableHeight: 3,
+          borderSize: 0.5,
+          walkableSlopeAngle: 90,
+          walkableHeight: 1,
           walkableClimb: 0.7,
-          walkableRadius: 1,
+          walkableRadius: 0.0001,
           maxEdgeLen: 12,
           maxSimplificationError: 1.3,
           minRegionArea: 8,
-          mergeRegionArea: 20,
+          mergeRegionArea: 8,
           maxVertsPerPoly: 6,
-          detailSampleDist: 6,
+          detailSampleDist: 60,
           detailSampleMaxError: 1,
         };
         let rcCfg = new nav.rcConfig();
@@ -211,7 +227,7 @@ function App() {
         var pt;
         var debugNavMesh = nM.getDebugNavMesh();
         let triangleCount = debugNavMesh.getTriangleCount();
-        console.log(geoIndeces, geoPoses);
+        console.log(geoPoses.toString());
 
         // for (tri = 0; tri < triangleCount * 3; tri++) {
         //   indices.push(tri);
@@ -246,7 +262,7 @@ function App() {
               opacity: 0.2,
             })
           );
-          debugNavObj.position.y += 5;
+          debugNavObj.position.y += 0.5;
           scene.add(debugNavObj);
         }
       };
@@ -257,7 +273,9 @@ function App() {
   return (
     <div className="App">
       <div className="container" ref={container}></div>
+      <div>{loading > 2 ? "Model Loaded" : "Model Loading"}</div>
       <div>{navMesh.current ? "NavMesh Builded" : "NavMesh preparing"}</div>
+      <div>Click to set start, Shift+Click to set end, scroll to rotate.</div>
     </div>
   );
 }

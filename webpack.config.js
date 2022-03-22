@@ -4,6 +4,7 @@ const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const CompressionPlugin = require("compression-webpack-plugin");
 
 const appDirectory = fs.realpathSync(process.cwd());
 const resolveApp = (relativePath) => path.resolve(appDirectory, relativePath);
@@ -15,7 +16,7 @@ module.exports = {
   entry: "./src/index.js",
   mode: "development",
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(__dirname, "docs"),
     filename: `[name].js`,
     // chunkFilename: "[name].min.js"
   },
@@ -28,11 +29,12 @@ module.exports = {
     children: false,
   },
   devServer: {
-    contentBase: "./",
+    static: {
+      directory: path.join(__dirname, "."),
+    },
     host: HOST,
     port: DEFAULT_PORT,
     hot: true,
-    inline: true, //实时刷新
     compress: true,
     open: true,
   },
@@ -60,12 +62,12 @@ module.exports = {
         ],
       },
       {
-        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.wasm$/],
+        test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/, /\.wasm$/, /\.obj$/],
         use: [
           {
             loader: "file-loader",
             options: {
-              name: `[name].[hash:8].[ext]`,
+              name: `[name].[ext]`,
             },
           },
         ],
@@ -74,7 +76,13 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin(),
-    new CopyPlugin([{ from: "static", to: "." }]),
+    new CompressionPlugin({
+      test: /\.jsx?$|\.wasm$|\.obj$/,
+      minRatio: 0.8,
+      threshold: 10240,
+      deleteOriginalAssets: false,
+    }),
+    new CopyPlugin({ patterns: [{ from: "static", to: "." }] }),
     new HtmlWebpackPlugin({
       title: "Development",
       filename: "index.html",
