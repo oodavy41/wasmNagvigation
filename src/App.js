@@ -2,9 +2,11 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 
 import * as THREE from "three";
 import RecastJS from "Recast";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { OBJLoader2 as Loader } from "three/examples/jsm/loaders/OBJLoader2";
 
 import "./App.css";
+
+//import terrain from "./vec.json"
 
 const cameraDistance = 120;
 const viewSize = [1280, 720];
@@ -30,16 +32,31 @@ function App() {
 
   useEffect(() => {
     new Promise((res) => {
-      const loader = new GLTFLoader();
-      loader.load("./countries.glb", (data) => {
+      const loader = new Loader();
+      loader.load("./worldNEW.obj", (data) => {
         res(data);
       });
     }).then((model) => {
       setLoading(1);
-      const mapObject = model.scene.children[0];
+
+      const mapObject = model.children[0];
       const geo = mapObject.geometry;
-      const geoIndeces = geo.index.array;
       const geoPoses = geo.attributes.position.array;
+      const geoIndeces = [];
+      for (let i = 0; i < geoPoses.length / 3; i++) {
+        geoIndeces.push(i);
+      }
+      console.log("OUTPUT", mapObject);
+
+      // const geoIndeces = terrain.indeces,
+      //  geoPoses = terrain.positions;
+      // const geo = new THREE.BufferGeometry();
+      // geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(geoPoses),3))
+      // geo.setIndex(new THREE.BufferAttribute(new Uint16Array(geoIndeces)))
+      // const mapObject = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: "#ffffff" }))
+
+      // console.log(JSON.stringify(geoIndeces))
+      // console.log(JSON.stringify(geoPoses))
 
       const camera = new THREE.PerspectiveCamera(
         45,
@@ -171,16 +188,17 @@ function App() {
         const config = {
           cs: 0.2,
           ch: 0.2,
-          walkableSlopeAngle: 60,
-          walkableHeight: 3,
+          borderSize: 0.5,
+          walkableSlopeAngle: 90,
+          walkableHeight: 1,
           walkableClimb: 0.7,
-          walkableRadius: 1,
+          walkableRadius: 0.0001,
           maxEdgeLen: 12,
           maxSimplificationError: 1.3,
           minRegionArea: 8,
-          mergeRegionArea: 20,
+          mergeRegionArea: 8,
           maxVertsPerPoly: 6,
-          detailSampleDist: 6,
+          detailSampleDist: 60,
           detailSampleMaxError: 1,
         };
         let rcCfg = new nav.rcConfig();
@@ -211,7 +229,7 @@ function App() {
         var pt;
         var debugNavMesh = nM.getDebugNavMesh();
         let triangleCount = debugNavMesh.getTriangleCount();
-        console.log(geoIndeces, geoPoses);
+        console.log(geoPoses.toString());
 
         // for (tri = 0; tri < triangleCount * 3; tri++) {
         //   indices.push(tri);
@@ -246,7 +264,7 @@ function App() {
               opacity: 0.2,
             })
           );
-          debugNavObj.position.y += 5;
+          debugNavObj.position.y += 0.5;
           scene.add(debugNavObj);
         }
       };
@@ -258,6 +276,7 @@ function App() {
     <div className="App">
       <div className="container" ref={container}></div>
       <div>{navMesh.current ? "NavMesh Builded" : "NavMesh preparing"}</div>
+      <div>Click to set start,Shift+Click to set end.</div>
     </div>
   );
 }
