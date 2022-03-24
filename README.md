@@ -1,4 +1,5 @@
 
-## an world map recast demo
+## an world map recast demo 
 ### using recast compile to wasm
-[sample](http://cocolate.cc/wasmNagvigation)
+### 
+[see the sample](https://oodavy41.github.io/wasmNagvigation)
